@@ -1,0 +1,21 @@
+From: Lubomir Rintel <lkundrak@v3.sk>
+
+Hot fix for #532325 [1]
+Not upstreamable since it defeats the icon's theming.
+
+[1] https://bugzilla.redhat.com/show_bug.cgi?id=532325
+
+Index: src/main.cpp
+===================================================================
+--- src/main.cpp	(revision 22548)
++++ src/main.cpp	(working copy)
+@@ -924,8 +924,7 @@
+     gdk_event_handler_set((GdkEventFunc)snooper, NULL, NULL);
+     Inkscape::Debug::log_display_config();
+ 
+-    // Set default window icon. Obeys the theme.
+-    gtk_window_set_default_icon_name("inkscape");
++    gtk_window_set_default_icon_from_file("/usr/share/pixmaps/inkscape.png", NULL);
+     // Do things that were previously in inkscape_gtk_stock_init().
+     sp_icon_get_phys_size(GTK_ICON_SIZE_MENU);
+     Inkscape::UI::Widget::Panel::prep();

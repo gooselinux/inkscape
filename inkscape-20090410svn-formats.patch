@@ -1,0 +1,16 @@
+See https://bugzilla.redhat.com/show_bug.cgi?id=458845
+
+Lubomir Rintel <lkundrak@v3.sk>
+
+diff -up inkscape/inkscape.desktop.in.uniconv inkscape/inkscape.desktop.in
+--- inkscape/inkscape.desktop.in.uniconv	2009-01-06 11:38:13.000000000 +0100
++++ inkscape/inkscape.desktop.in	2009-01-06 11:38:39.000000000 +0100
+@@ -4,7 +4,7 @@ _Name=Inkscape Vector Graphics Editor
+ _Comment=Create and edit Scalable Vector Graphics images
+ Type=Application
+ Categories=Graphics;VectorGraphics;GTK;
+-MimeType=image/svg+xml;image/svg+xml-compressed;
++MimeType=image/svg+xml;image/svg+xml-compressed;image/cgm;image/x-wmf;application/vnd.corel-draw;application/x-xccx;application/x-xcgm;application/x-xcdt;application/x-xsk1;application/x-xcmx;image/x-xcdr;
+ Exec=inkscape %F
+ TryExec=inkscape
+ Terminal=false

@@ -1,0 +1,129 @@
+From 61ef28dbb939d8a65c17e07834d7e31bae7955f2 Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Fri, 25 Sep 2009 15:15:56 +0200
+Subject: [PATCH] Make it possible to build Inkscape 0.47 on RHEL 5
+
+This contains various quirks to build against slightly older libraries
+and tools. Specifically:
+
+* Automake prior to 1.10 generated incorrect rules to build assembly files
+which resulted in object files being placed in wrong directories.
+
+* Configure required giomm-2.4 pkg-config package, which is provided by
+recent gtkmm, but not by older one, though giomm-2.4 itself is present
+
+* Cairo prior to 1.5.1 did not define macros for PostScript language
+levels.
+
+* GTK prior to 2.12.0 did not provide
+gtk_entry_completion_set_inline_selection () function
+
+* GLib prior to version 2.15.1 did not provide mechanisms for parsing
+URIs.
+---
+ autogen.sh                              |   10 +++++-----
+ configure.ac                            |    2 +-
+ src/Makefile.am                         |    5 +++++
+ src/extension/internal/cairo-ps-out.cpp |    5 +++++
+ src/widgets/toolbox.cpp                 |    2 ++
+ src/xml/rebase-hrefs.cpp                |   13 ++++++++++++-
+ 6 files changed, 30 insertions(+), 7 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index fbfa2e5..32ff5a4 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -649,7 +649,7 @@ if test $cc_vers_major -gt 3; then
+ else
+   min_sigc_version=2.0.11
+ fi
+-PKG_CHECK_MODULES(INKSCAPE, gdkmm-2.4  glibmm-2.4 giomm-2.4 gtkmm-2.4 >= 2.10.0  gtk+-2.0  libxml-2.0 >= 2.6.11  libxslt >= 1.0.15  cairo  sigc++-2.0 >= $min_sigc_version  $ink_spell_pkg  gthread-2.0 >= 2.0 libpng >= 1.2 gsl)
++PKG_CHECK_MODULES(INKSCAPE, gdkmm-2.4  glibmm-2.4  gtkmm-2.4 >= 2.10.0  gtk+-2.0  libxml-2.0 >= 2.6.11  libxslt >= 1.0.15  cairo  sigc++-2.0 >= $min_sigc_version  $ink_spell_pkg  gthread-2.0 >= 2.0 libpng >= 1.2 gsl)
+ 
+ # Check for Apple Mac OS X Carbon framework
+ carbon_ok=no
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 4d57de8..07339ad 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -284,3 +284,8 @@ dist-hook:
+ 
+ distclean-local:
+ 	rm -f cxxtests.xml cxxtests.log
++
++# Work around old Automake bug (fixed in 1.10)
++CCASCOMPILE ?= $(CPPASCOMPILE)
++.S.o:
++	$(CCASCOMPILE) -c -o $@ $<
+diff --git a/src/extension/internal/cairo-ps-out.cpp b/src/extension/internal/cairo-ps-out.cpp
+index 9ac1932..d3bda7f 100644
+--- a/src/extension/internal/cairo-ps-out.cpp
++++ b/src/extension/internal/cairo-ps-out.cpp
+@@ -38,6 +38,11 @@
+ 
+ #include "io/sys.h"
+ 
++#if CAIRO_VERSION < CAIRO_VERSION_ENCODE(1, 5, 1)
++#  define CAIRO_PS_LEVEL_2 0
++#  define CAIRO_PS_LEVEL_3 1
++#endif
++
+ namespace Inkscape {
+ namespace Extension {
+ namespace Internal {
+diff --git a/src/widgets/toolbox.cpp b/src/widgets/toolbox.cpp
+index 46ad082..5d3cdea 100644
+--- a/src/widgets/toolbox.cpp
++++ b/src/widgets/toolbox.cpp
+@@ -6563,7 +6563,9 @@ cbe_add_completion (GtkComboBoxEntry *cbe, GObject *tbl){
+     gtk_entry_completion_set_model(completion, model);
+     gtk_entry_completion_set_text_column(completion, 0);
+     gtk_entry_completion_set_inline_completion(completion, FALSE);
++#if GTK_CHECK_VERSION(2,12,0)
+     gtk_entry_completion_set_inline_selection(completion, FALSE);
++#endif
+     gtk_entry_completion_set_popup_completion(completion, TRUE);
+     gtk_entry_set_completion(entry, completion);
+ 
+diff --git a/src/xml/rebase-hrefs.cpp b/src/xml/rebase-hrefs.cpp
+index c387672..69b2c60 100644
+--- a/src/xml/rebase-hrefs.cpp
++++ b/src/xml/rebase-hrefs.cpp
+@@ -8,8 +8,12 @@
+ #include "xml/attribute-record.h"
+ #include "xml/node.h"
+ #include <glib/gmem.h>
+-#include <glib/gurifuncs.h>
+ #include <glib/gutils.h>
++#if GLIB_CHECK_VERSION(2,15,1)
++#include <glib/gurifuncs.h>
++#else
++#include <string.h>
++#endif
+ using Inkscape::XML::AttributeRecord;
+ 
+ 
+@@ -28,6 +32,7 @@ href_needs_rebasing(char const *const href)
+          * document, rather than referring to the base URI. */
+     }
+ 
++#if GLIB_CHECK_VERSION(2,15,1)
+     /* Don't change data or http hrefs. */
+     {
+         char *const scheme = g_uri_parse_scheme(href);
+@@ -42,6 +47,12 @@ href_needs_rebasing(char const *const href)
+             return false;
+         }
+     }
++#else
++    if (href == strstr (href, "http:") ||
++	href == strstr (href, "https:") ||
++	href == strstr (href, "data:"))
++        return false;
++#endif
+ 
+     /* If absolute then keep it as is.
+      *
+-- 
+1.6.2.5
+

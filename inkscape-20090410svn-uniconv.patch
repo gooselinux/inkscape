@@ -1,0 +1,38 @@
+uniconvertor and uniconv are looked in in reversed order
+(therefore we can call uniconv that's different from the uniconvertor one)
+https://bugs.launchpad.net/inkscape/+bug/226383
+
+Lubomir Rintel <lkundrak@v3.sk>
+
+diff -up inkscape/share/extensions/uniconv-ext.py.uniconv inkscape/share/extensions/uniconv-ext.py
+--- inkscape/share/extensions/uniconv-ext.py.uniconv	2009-03-01 18:06:19.000000000 +0100
++++ inkscape/share/extensions/uniconv-ext.py	2009-04-10 15:22:21.916579400 +0200
+@@ -28,19 +28,21 @@ cmd = None
+ 
+ try:
+     from subprocess import Popen, PIPE
+-    p = Popen('uniconv', shell=True, stdout=PIPE, stderr=PIPE).wait()
++    p = Popen('uniconvertor', shell=True, stdout=PIPE, stderr=PIPE).wait()
+     if p==0 :
+-        cmd = 'uniconv'
++        cmd = 'uniconvertor'
+     else:
+-        p = Popen('uniconvertor', shell=True, stdout=PIPE, stderr=PIPE).wait()
++        p = Popen('uniconv', shell=True, stdout=PIPE, stderr=PIPE).wait()
+         if p==0 :
+-            cmd = 'uniconvertor'
++            cmd = 'uniconv'
+ except ImportError:
+     from popen2 import Popen3
+-    p = Popen3('uniconv', True).wait()
+-    if p!=32512 : cmd = 'uniconv'
+     p = Popen3('uniconvertor', True).wait()
+-    if p!=32512 : cmd = 'uniconvertor'
++    if p!=32512 :
++        cmd = 'uniconvertor'
++    else:
++        p = Popen3('uniconv', True).wait()
++        if p!=32512 : cmd = 'uniconv'
+ 
+ if cmd == None:
+     # there's no succeffully-returning uniconv command; try to get the module directly (on Windows)
